@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="left-icon">files_Qt/Milky/48/28.png</file>
+        <file alias="right-icon">files_Qt/Milky/48/23.png</file>
+        <file alias="up-icon">files_Qt/Milky/48/19.png</file>
+        <file alias="down-icon">files_Qt/Milky/48/24.png</file>
+        <file alias="zoom_x1-icon">files_Qt/Milky/48/27.png</file>
+        <file alias="imgRegion-icon">files_Qt/Milky/48/61.png</file>
+        <file alias="zoom_in-icon">files_Qt/Milky/48/106.png</file>
+        <file alias="zoom_out-icon">files_Qt/Milky/48/107.png</file>
+        <file alias="save-icon">files_Qt/Milky/48/7.png</file>
+        <file alias="properties-icon">files_Qt/Milky/48/38.png</file>
+        <file alias="stylesheet-trackbar">files_Qt/stylesheet_trackbar.qss</file>
+		<file alias="giftbox-icon">files_Qt/Milky/48/60.png</file>
+		<file alias="peppers-icon">files_Qt/Milky/48/peppers_icon.png</file>
+		<file alias="step_bw-icon">files_Qt/Milky/48/92.png</file>
+        <file alias="step_fw-icon">files_Qt/Milky/48/94.png</file>
+		<file alias="B0-icon">files_Qt/Milky/48/B0.png</file>
+		<file alias="B1-icon">files_Qt/Milky/48/B1.png</file>
+		<file alias="B2-icon">files_Qt/Milky/48/B2.png</file>
+		<file alias="B3-icon">files_Qt/Milky/48/B3.png</file>
+		<file alias="way_view-icon">files_Qt/Milky/48/way_view_icon.png</file>
+    </qresource>
+</RCC>
