@@ -14,7 +14,7 @@ Advantages of WayView:
  - WayView.exe is built as a standalone Windows application without external DLL dependencies (the dependent libraries are statically linked).  
  - When opening a 16bpc image, the image is automatically processed for display.  
  The current version applies "linear stretching" before displaying the image (only for 16bpc images).  
- The processing is required for overcoming the issue that most 16bpc images don't cover the full range of [0, 2^16^-1], and are usually very dark when displayed without processing.
+ The processing is required for overcoming the issue that most 16bpc images don't cover the full range of \[0, 2^16^-1\], and are usually very dark when displayed without processing.
  - The viewer enables zooming and inspection features that are part of OpenCV `imshow` functionality when OpenCV is built with [Qt](https://en.wikipedia.org/wiki/Qt_(software)).
  - The viewer inspects the original pixel values before processing (not the 8bpc values that are displayed on the screen).  
  - The viewer allows skipping forward and backward to the next and previous image with the same file extension.
@@ -29,8 +29,8 @@ Advantages of WayView:
 
 ### Installing
 
- - How/where to download your program
- - Download WayView.exe and copy the file to know folder such as "c:\Program Files\WayView".  
+ - Download the latest release of WayView.exe from [releases](https://github.com/cohenrotem/WayView/releases).
+ - Copy WayView.exe to know folder such as "c:\Program Files\WayView".  
  (Create a folder named WayView in "c:\Program Files" folder, and copy WayView.exe to the created folder).  
 
 
