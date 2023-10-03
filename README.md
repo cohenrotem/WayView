@@ -19,6 +19,12 @@ Advantages of WayView:
  - The viewer inspects the original pixel values before processing (not the 8bpc values that are displayed on the screen).  
  - The viewer allows skipping forward and backward to the next and previous image with the same file extension.
  - The "Open Source" nature of the project, allows incorporating customized features.
+ 
+Inspecting pixel value with mouse cursor:   
+![alt text](https://github.com/cohenrotem/WayView/blob/main/Screenshots/PixelInspection.png)
+
+Inspecting pixel values when zooming in:  
+![alt text](https://github.com/cohenrotem/WayView/blob/main/Screenshots/ZoomX30.png)
 
 
 ## Getting Started
