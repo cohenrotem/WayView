@@ -1,7 +1,35 @@
 // main.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
 
-#include "pch.h"
+//#include "pch.h"
+
+#include "opencv2/highgui.hpp"
+
+#include "opencv2/core/utility.hpp"
+
+#include "opencv2/imgproc/imgproc_c.h"
+#include "opencv2/highgui/highgui_c.h"
+
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/imgcodecs/imgcodecs_c.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+#include <ctype.h>
+#include <assert.h>
+
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#include <shellapi.h>
+#undef small
+#undef abs
+#endif
+
+
+
 #include <iostream>
 #include <cstring>
 #include <vector>
@@ -9,6 +37,11 @@
 #include <locale.h>
 #include <wchar.h>
 #include <iostream>
+#include <cctype>
+
+//C++17 now has the std::filesystem
+#include <filesystem>
+
 
 //https://stackoverflow.com/questions/27759754/qt-5-4-static-build-produces-unresolved-external-symbol-link-error-in-visual-s
 #include "QtCore/qplugin.h"
@@ -27,7 +60,11 @@ Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
 
 using namespace cv;
 
-#define MY_UNREFERENCED_PARAMETER(p) p
+#ifdef _WIN32
+#define MY_UNREFERENCED_PARAMETER(p) (p)    //Assume MSVC Compiler
+#else
+#define MY_UNREFERENCED_PARAMETER(p) (void)(p)  //Assume GNU Compiler
+#endif
 
 
 //For some reason keyPressEvent doesn't detect arrow keys (and cvWaitKey doesn't detect arrow keys).
@@ -136,7 +173,7 @@ static Mat myimread(const wchar_t filename[], int flags = 1, bool do_create_appl
 
 
 
-
+#if 0
 class CListOfFiles
 {
 private:
@@ -257,6 +294,135 @@ public:
 		}
 	}
 };
+#endif
+
+
+
+class CListOfFilePaths
+{
+private:
+	int pathFind(const std::vector<std::filesystem::path>& vec, const std::filesystem::path pFind)
+	{
+		for (std::vector<std::filesystem::path>::const_iterator iter = vec.begin(); iter != vec.end(); ++iter)
+		{
+            //if (iter->compare(pFind) == 0) //Lets hope that in Windows the path comparison is case insensitve, and in Linux the comparison is case sensitve.
+            if (std::filesystem::equivalent(*iter, pFind))   //https://stackoverflow.com/questions/28014614/why-path-comparison-is-case-sensitive-in-latest-filesystem-draft-c
+			{
+				return (int)std::distance(vec.begin(), iter);
+			}
+		}
+
+		return -1;
+	}
+   
+    static __inline bool iwchar_equals(const wchar_t a, const wchar_t b)
+    {
+        return std::tolower(a) == std::tolower(b);
+    }
+
+    //https://stackoverflow.com/questions/11635/case-insensitive-string-comparison-in-c
+    static bool iwequals(const std::wstring& a, const std::wstring& b)
+    {
+        return std::equal(a.begin(), a.end(), b.begin(), b.end(), iwchar_equals);
+    }
+
+
+public:
+	std::vector<std::filesystem::path> Q;
+
+	CListOfFilePaths() {}
+
+	~CListOfFilePaths() {}
+
+	//Build vector of files matching <dir_path/*.ext_path> (example: if dir_path is C:\Tmp and ext_path is .tif, fill Q with all tif file paths in C:\Tmp folder)
+	int dir(std::filesystem::path dir_path, std::filesystem::path ext_path)
+	{
+		Q.clear();
+
+        //https://stackoverflow.com/questions/612097/how-can-i-get-the-list-of-files-in-a-directory-using-c-or-c
+        for (const auto& entry : std::filesystem::directory_iterator{dir_path})
+        {
+            //Note: it doen't look so efficient to itterate all files in the directory, and check for matching extension.
+            //We may consider iterating the image files without creating a list from advance.
+#ifdef _WIN32
+            if (iwequals(entry.path().extension().wstring(), ext_path.wstring()))   //Assume Windows - case insensitive comparison
+#else
+            if (entry.path().extension().compare(ext_path) == 0)    //Assume Linux - case sensitive comparison
+#endif
+            {
+                Q.push_back(entry.path());
+            }
+        }
+		return (int)Q.size();
+	}
+
+
+	//Return index of pname in vector Q, return (-1) if not exist.
+	int findPathIdx(std::filesystem::path pname)
+	{
+		int idx;
+
+		idx = pathFind(Q, pname);
+
+		return idx;
+	}
+
+
+	//Return name of previous file path in vector Q.
+	std::filesystem::path getPrevFilePath(std::filesystem::path pname)
+	{
+		int idx;
+		int len = (int)Q.size();
+
+		idx = pathFind(Q, pname);
+
+		if (idx == -1)
+		{
+			//Return empty path if fname is not is Q.
+			return std::filesystem::path();
+		}
+
+		if (idx == 0)
+		{
+			//If fname is the first file path in the list, return the last file
+			return Q[len - 1];
+		}
+		else
+		{
+			//Return previous file path name from the list
+			return Q[idx - 1];
+		}
+	}
+
+
+	//Return name of next file path in vector Q.
+	std::filesystem::path getNextFilePath(std::filesystem::path pname)
+	{
+		int idx;
+		int len = (int)Q.size();
+
+		idx = pathFind(Q, pname);
+
+		if (idx == -1)
+		{
+			//Return empty file path if fname is not is Q.
+			return std::filesystem::path();
+		}
+
+		if (idx >= (len-1))
+		{
+			//If fname is the last file path in the list, return the first.
+			return Q[0];
+		}
+		else
+		{
+			//Return next file path name from the list
+			return Q[idx + 1];
+		}
+	}
+};
+
+
 
 
 
@@ -459,8 +625,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
     MY_UNREFERENCED_PARAMETER(lpCmdLine);
     MY_UNREFERENCED_PARAMETER(nCmdShow);
 
-	errno_t sts = (errno_t)0;
-
     //https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-commandlinetoargvw?redirectedfrom=MSDN
     //Convert command line arguments to argc and argv
     ////////////////////////////////////////////////////////////////////////////
@@ -488,17 +652,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 	}
 
 	const wchar_t *path = argv[1];
-	wchar_t drive[_MAX_DRIVE];
-	wchar_t dir[4096];
-	wchar_t fname[_MAX_FNAME];
-	wchar_t ext[_MAX_EXT];
-	wchar_t wpath_buffer[4096];
-	wchar_t tiffs_path[4096 + _MAX_EXT];    //The name "tiffs_path" is used for path\*.tif, but may also be other file type like path\*.png
 
 	const wchar_t winname[] = L"I";
 
 	int balance_select = 0;
 
+#if 0
+    errno_t sts = (errno_t)0;
+
+    wchar_t drive[_MAX_DRIVE];
+	wchar_t dir[4096];
+	wchar_t fname[_MAX_FNAME];
+	wchar_t ext[_MAX_EXT];
+	wchar_t wpath_buffer[4096];
+	wchar_t tiffs_path[4096 + _MAX_EXT];    //The name "tiffs_path" is used for path\*.tif, but may also be other file type like path\*.png
 
 	memset(wpath_buffer, 0, sizeof(wpath_buffer));
 
@@ -534,41 +701,56 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 				 dir,						//const wchar_t *dir,
 				 L"*",						//const wchar_t *fname,
 				 ext);						//const wchar_t *ext
-
-	
+   	
 	//Image file (with extension), without full path.
-	std::wstring image_file_name = std::wstring(fname) + std::wstring(ext);
 
-	CListOfFiles list;
+	//std::wstring image_file_name = std::wstring(fname) + std::wstring(ext);
+
+    CListOfFiles list;
 
     int n_files = list.dir(wpath_buffer); //Making sure that the (first) input image exists
+#endif
 
-	if (n_files <= 0)
+    //C++17 now has the std::filesystem package
+    //https://stackoverflow.com/questions/35530092/c-splitting-an-absolute-file-path
+    //https://en.cppreference.com/w/cpp/filesystem/path/extension
+    std::filesystem::path image_full_path(path);
+    std::filesystem::path dir_path = image_full_path.parent_path();
+    std::filesystem::path ext_path = image_full_path.extension();
+    std::filesystem::path images_path = dir_path / L"*";   //operator/  - concatenates two paths with a directory separator //https://en.cppreference.com/w/cpp/filesystem/path/append
+    images_path += ext_path;    //operator+= - concatenates two paths without introducing a directory separator	
+
+    CListOfFilePaths paths_list;
+
+    bool is_file_exist = std::filesystem::exists(image_full_path);
+
+	if (!is_file_exist)
 	{
-        showErrorMessageAndExit(std::wstring(L"Can't find file: ") + wpath_buffer, true);
+        showErrorMessageAndExit(std::wstring(L"Can't find file: ") + image_full_path.wstring(), true);
 	}
 
-	n_files = list.dir(std::wstring(tiffs_path));
+    int n_paths = paths_list.dir(dir_path, ext_path);
 
-	if (n_files <= 0)
+	if (n_paths <= 0)
 	{
-        showErrorMessageAndExit(std::wstring(L"Can't find files: ") + tiffs_path, true);
+        showErrorMessageAndExit(std::wstring(L"Can't find files: ") + images_path.wstring(), true);
 	}
 
-	int idx = list.findFileIdx(image_file_name);
+	int idx = paths_list.findPathIdx(image_full_path);
 	
 	if (idx < 0)
 	{
-        showErrorMessageAndExit(L"Can't find file: " + image_file_name, true);
+        showErrorMessageAndExit(L"Can't find file: " + image_full_path.wstring(), true);
 	}
 	////////////////////////////////////////////////////////////////////////////
 
 
 	Mat J;
-	Mat I = myimread(wpath_buffer, IMREAD_UNCHANGED, true);
+	Mat I = myimread(image_full_path.wstring().c_str(), IMREAD_UNCHANGED, true);
 
 	J = processImageForDisplay(I);  //Process image for display (if needed).
 
+    std::wstring image_file_name = image_full_path.filename().wstring();
 	const wchar_t *wintitle = image_file_name.c_str();
 	   
 	mycvNamedWindow(winname, wintitle, WINDOW_AUTOSIZE | WINDOW_GUI_EXPANDED);
@@ -593,9 +775,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 
 		if (key == (int)ARROW_KEY::LEFT)
 		{
-			image_file_name = list.getPrevFileName(image_file_name);
+			image_full_path = paths_list.getPrevFilePath(image_full_path);
 
-			if (image_file_name.empty())
+			if (image_full_path.empty())
 			{
                 showErrorMessageAndExit(L"Ooops getPrevFileName failed");
 			}
@@ -604,9 +786,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 		}
 		else if (key == (int)ARROW_KEY::RIGHT)
 		{
-			image_file_name = list.getNextFileName(image_file_name);
+			image_full_path = paths_list.getNextFilePath(image_full_path);
 
-			if (image_file_name.empty())
+			if (image_full_path.empty())
 			{
                 showErrorMessageAndExit(L"Ooops getNextFileName failed");
 			}
@@ -621,13 +803,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 		{
 			//When F5 is pressed, rebuild list of files, and reload image.
 			//Useful in case image are added or modified in the background (when image files are updated by other process).
+            //n_files = list.dir(std::wstring(tiffs_path));
 
-			n_files = list.dir(std::wstring(tiffs_path));
+			n_paths = paths_list.dir(dir_path, ext_path);
+            images_path = dir_path / L"*";  //operator/  - concatenates two paths with a directory separator //https://en.cppreference.com/w/cpp/filesystem/path/append
+            images_path += ext_path;        //operator+= - concatenates two paths without introducing a directory separator	
 
-			if (n_files <= 0)
+			if (n_paths <= 0)
 			{
-                showErrorMessageAndExit(std::wstring(L"list.dir can't find file ") + tiffs_path);
+                showErrorMessageAndExit(std::wstring(L"list.dir can't find file ") + images_path.wstring());
 			}
+
+            is_file_exist = std::filesystem::exists(image_full_path);
+
+	        if (!is_file_exist)
+	        {
+                showErrorMessageAndExit(std::wstring(L"Can't find file: ") + image_full_path.wstring(), true);
+	        }
 
 			do_update_image_file = true;
 		}
@@ -642,17 +834,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 
 		if (do_update_image_file)
 		{
-			_wmakepath_s(wpath_buffer,				//wchar_t *path,
-						 _countof(wpath_buffer),	//size_t sizeInWords,
-						 drive,						//const wchar_t *drive,
-						 dir,						//const wchar_t *dir,
-						 image_file_name.c_str(),	//const wchar_t *fname,
-						 L"");						//const wchar_t *ext
+			//_wmakepath_s(wpath_buffer,				//wchar_t *path,
+			//			 _countof(wpath_buffer),	//size_t sizeInWords,
+			//			 drive,						//const wchar_t *drive,
+			//			 dir,						//const wchar_t *dir,
+			//			 image_file_name.c_str(),	//const wchar_t *fname,
+			//			 L"");						//const wchar_t *ext
 
-			I = myimread(wpath_buffer, IMREAD_UNCHANGED);
+			I = myimread(image_full_path.wstring().c_str(), IMREAD_UNCHANGED);
 
             J = processImageForDisplay(I);  //Process image for display (if needed).
 
+            image_file_name = image_full_path.filename().wstring();
 			wintitle = image_file_name.c_str();
 
 			tmpJ = cvIplImage(J);
@@ -665,7 +858,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
             qw->setWindowIcon(QIcon(":/way_view-icon"));    //Set an icon for the Named Window.
 		}
 
-		key = mycvWaitKey(100);
+		key = mycvWaitKey(1);
 
 		is_visible = qw->isVisible();
 	}

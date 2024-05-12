@@ -6,7 +6,7 @@
 ** WARNING! All changes made in this file will be lost!
 *****************************************************************************/
 
-#include "pch.h"
+//#include "pch.h"
 
 static const unsigned char qt_resource_data[] = {
   // C:/WayView/WayView/files_Qt/Milky/48/24.png

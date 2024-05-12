@@ -44,7 +44,64 @@
 #pragma warning(disable: 4127)  //qvarlengtharray.h(169,1): warning C4127: conditional expression is constant
 
 //#include "precomp.hpp"
-#include "pch.h"
+
+
+//#include "pch.h"
+
+//The following part was copied from "pch.h"
+//////////////////////////////////////////////////////////////////////////
+#include "opencv2/highgui.hpp"
+
+#include "opencv2/core/utility.hpp"
+
+#include "opencv2/imgproc/imgproc_c.h"
+#include "opencv2/highgui/highgui_c.h"
+
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/imgcodecs/imgcodecs_c.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+#include <ctype.h>
+#include <assert.h>
+
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#include <shellapi.h>
+#undef small
+#undef min
+#undef max
+#undef abs
+#endif
+
+#define HAVE_QT
+
+/*** Rotem ***/
+//Avoid usage of OpenGL even if we have OpenGL.
+//#define HAVE_QT_OPENGL
+#undef HAVE_QT_OPENGL
+/*** Rotem ***/
+
+/* Errors */
+#define HG_OK          0 /* Don't bet on it! */
+#define HG_BADNAME    -1 /* Bad window or file name */
+#define HG_INITFAILED -2 /* Can't initialize HigHGUI */
+#define HG_WCFAILED   -3 /* Can't create a window */
+#define HG_NULLPTR    -4 /* The null pointer where it should not appear */
+#define HG_BADPARAM   -5
+
+#define __BEGIN__ __CV_BEGIN__
+#define __END__  __CV_END__
+#define EXIT __CV_EXIT__
+
+#define CV_WINDOW_MAGIC_VAL     0x00420042
+#define CV_TRACKBAR_MAGIC_VAL   0x00420043
+//////////////////////////////////////////////////////////////////////////
+
+
 
 #ifndef _DEBUG
 #define QT_NO_DEBUG_OUTPUT

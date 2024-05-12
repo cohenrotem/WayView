@@ -39,7 +39,8 @@
 //--------------------Google Code 2010 -- Yannick Verdie--------------------//
 
 //#include "precomp.hpp"
-#include "pch.h"
+//#include "pch.h"
+#define HAVE_QT
 
 #if defined(HAVE_QT)
 
@@ -65,7 +66,7 @@
 
 
 //Static and global first
-static MyGuiReceiver *guiMainThread = NULL;
+static MyGuiReceiver *guiMainThread = nullptr;
 static int parameterSystemC = 1;
 static char* parameterSystemV[] = {(char*)""};
 static bool multiThreads = false;
@@ -76,7 +77,7 @@ static const unsigned int threshold_zoom_img_region = 30;
 //the minimum zoom value to start displaying the values in the grid
 //that is also the number of pixel per grid
 
-static MyCvWinProperties* global_control_panel = NULL;
+static MyCvWinProperties* global_control_panel = nullptr;
 //end static and global
 
 // Declaration
