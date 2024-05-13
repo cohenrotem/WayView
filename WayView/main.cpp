@@ -1,8 +1,5 @@
 // main.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
-
-//#include "pch.h"
-
 #include "opencv2/highgui.hpp"
 
 #include "opencv2/core/utility.hpp"
@@ -35,6 +32,7 @@
 #include <vector>
 
 #include <locale.h>
+#include <codecvt>
 #include <wchar.h>
 #include <iostream>
 #include <cctype>
@@ -61,7 +59,7 @@ Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
 using namespace cv;
 
 #ifdef _WIN32
-#define MY_UNREFERENCED_PARAMETER(p) (p)    //Assume MSVC Compiler
+#define MY_UNREFERENCED_PARAMETER(p) (p)        //Assume MSVC Compiler
 #else
 #define MY_UNREFERENCED_PARAMETER(p) (void)(p)  //Assume GNU Compiler
 #endif
@@ -170,131 +168,6 @@ static Mat myimread(const wchar_t filename[], int flags = 1, bool do_create_appl
 
 	return decodedImage;
 }
-
-
-
-#if 0
-class CListOfFiles
-{
-private:
-	//https://stackoverflow.com/questions/36494584/find-string-in-vector-of-strings-case-insensitive-c
-	int VecFindIgnoreCase(const std::vector<std::wstring>& vec, const wchar_t* sFind)
-	{
-		for (std::vector<std::wstring>::const_iterator iter = vec.begin(); iter != vec.end(); ++iter)
-		{
-			if (_wcsicmp((*iter).c_str(), sFind) == 0)
-			{
-				return (int)std::distance(vec.begin(), iter);
-			}
-		}
-
-		return -1;
-	}
-
-	int VecFindIgnoreCase(const std::vector<std::wstring>& vec, const std::wstring& sFind)
-	{
-		return VecFindIgnoreCase(vec, sFind.c_str());
-	}
-
-
-public:
-	std::vector<std::wstring> Q;
-
-	CListOfFiles() {}
-
-	~CListOfFiles() {}
-
-	//Build vector of files matching <fnames> (example: if fnames is C:\Tmp\*.tif, fill Q with all tif file names in C:\Tmp folder)
-	int dir(std::wstring fnames)
-	{
-		Q.clear();
-
-		WIN32_FIND_DATA FindFileData;
-		HANDLE hFind = FindFirstFileExW(fnames.c_str(), FindExInfoStandard, &FindFileData, FindExSearchNameMatch, NULL, 0);;
-
-		if (hFind == INVALID_HANDLE_VALUE)
-		{
-			return 0;
-		}
-
-		Q.push_back(std::wstring(FindFileData.cFileName));
-
-		while (FindNextFileW(hFind, &FindFileData))
-		{
-			Q.push_back(std::wstring(FindFileData.cFileName));
-		}
-
-		FindClose(hFind);
-
-		return (int)Q.size();
-	}
-
-
-	//Return index of fname in vector Q, return (-1) if not exist (case insensitive search).
-	int findFileIdx(std::wstring fname)
-	{
-		int idx;
-
-		idx = VecFindIgnoreCase(Q, fname);
-
-		return idx;
-	}
-
-
-	//Return name of previous file in vector Q.
-	std::wstring getPrevFileName(std::wstring fname)
-	{
-		int idx;
-		int len = (int)Q.size();
-
-		idx = VecFindIgnoreCase(Q, fname);
-
-		if (idx == -1)
-		{
-			//Return empty string if fname is not is Q.
-			return std::wstring();
-		}
-
-		if (idx == 0)
-		{
-			//If fname is the first file in the list, return the last file
-			return Q[len - 1];
-		}
-		else
-		{
-			//Return previous file name from the list
-			return Q[idx - 1];
-		}
-	}
-
-
-	//Return name of next file in vector Q.
-	std::wstring getNextFileName(std::wstring fname)
-	{
-		int idx;
-		int len = (int)Q.size();
-
-		idx = VecFindIgnoreCase(Q, fname);
-
-		if (idx == -1)
-		{
-			//Return empty string if fname is not is Q.
-			return std::wstring();
-		}
-
-		if (idx >= (len-1))
-		{
-			//If fname is the last file in the list, return the first.
-			return Q[0];
-		}
-		else
-		{
-			//Return next file name from the list
-			return Q[idx + 1];
-		}
-	}
-};
-#endif
 
 
 
@@ -617,7 +490,7 @@ static Mat processImageForDisplay(const Mat I)
 
 
 
-//int wmain(int argc, wchar_t *argv[])
+#ifdef _WIN32
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nCmdShow)
 {
     MY_UNREFERENCED_PARAMETER(hInstance);
@@ -626,18 +499,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
     MY_UNREFERENCED_PARAMETER(nCmdShow);
 
     //https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-commandlinetoargvw?redirectedfrom=MSDN
-    //Convert command line arguments to argc and argv
+    //Convert command line arguments to argc and wargv
     ////////////////////////////////////////////////////////////////////////////
-    wchar_t **argv;
+    wchar_t **wargv;
     int argc;
 
-    argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    if (nullptr == argv)
+    wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (nullptr == wargv)
     {
         showErrorMessageAndExit(L"CommandLineToArgvW failed", true);
     }    
     ////////////////////////////////////////////////////////////////////////////
 
+    std::wstring path{wargv[1]};
+#else   //Linux: use standard main, and convert argv from char to wchar_t (convert to wchar_t for matching the Windows implementation that uses wchar_t).
+int main(int argc, char *argv[])
+{
+#endif
 
 	if (argc != 2)
 	{
@@ -651,65 +529,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
         }
 	}
 
-	const wchar_t *path = argv[1];
+#ifndef _WIN32
+    std::string narrow_utf8_path_string = std::string{argv[1]}; //Assume that in Linux the file path is UTF-8 encoded.
+
+    //Convert std::string to std::wstring. https://stackoverflow.com/questions/2573834/c-convert-string-or-char-to-wstring-or-wchar-t
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;   //Deprecated in C++17, but we are using it anyway (define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING).
+    std::wstring path = converter.from_bytes(narrow_utf8_path_string);
+#endif
 
 	const wchar_t winname[] = L"I";
 
 	int balance_select = 0;
-
-#if 0
-    errno_t sts = (errno_t)0;
-
-    wchar_t drive[_MAX_DRIVE];
-	wchar_t dir[4096];
-	wchar_t fname[_MAX_FNAME];
-	wchar_t ext[_MAX_EXT];
-	wchar_t wpath_buffer[4096];
-	wchar_t tiffs_path[4096 + _MAX_EXT];    //The name "tiffs_path" is used for path\*.tif, but may also be other file type like path\*.png
-
-	memset(wpath_buffer, 0, sizeof(wpath_buffer));
-
-    //Split image file path to drive, directory, file name and file extension
-	sts = _wsplitpath_s(path,			    //const wchar_t * path,
-					    drive,				//wchar_t * drive,
-					    _countof(drive),	//size_t driveNumberOfElements,
-					    dir,				//wchar_t * dir,
-					    _countof(dir),		//size_t dirNumberOfElements,
-					    fname,				//wchar_t * fname,
-					    _countof(fname),	//size_t nameNumberOfElements,
-					    ext,				//wchar_t * ext,
-					    _countof(ext));		//size_t extNumberOfElements);
-
-	if (sts != 0)
-	{
-        showErrorMessageAndExit(std::wstring(L"_splitpath_s return error code ") + std::to_wstring((int)sts), true);
-	}
-
-    //Make path from drive, dir, fname and ext (splitting an making the path removes any odd parts like quotes).
-	_wmakepath_s(wpath_buffer,				//wchar_t *path,
-				 _countof(wpath_buffer),	//size_t sizeInWords,
-				 drive,						//const wchar_t *drive,
-				 dir,						//const wchar_t *dir,
-				 fname,						//const wchar_t *fname,
-				 ext);						//const wchar_t *ext
-
-
-	////////////////////////////////////////////////////////////////////////////
-	_wmakepath_s(tiffs_path,				//wchar_t *path,
-				 _countof(tiffs_path),		//size_t sizeInWords,
-				 drive,						//const wchar_t *drive,
-				 dir,						//const wchar_t *dir,
-				 L"*",						//const wchar_t *fname,
-				 ext);						//const wchar_t *ext
-   	
-	//Image file (with extension), without full path.
-
-	//std::wstring image_file_name = std::wstring(fname) + std::wstring(ext);
-
-    CListOfFiles list;
-
-    int n_files = list.dir(wpath_buffer); //Making sure that the (first) input image exists
-#endif
 
     //C++17 now has the std::filesystem package
     //https://stackoverflow.com/questions/35530092/c-splitting-an-absolute-file-path
@@ -742,7 +572,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 	{
         showErrorMessageAndExit(L"Can't find file: " + image_full_path.wstring(), true);
 	}
-	////////////////////////////////////////////////////////////////////////////
 
 
 	Mat J;
@@ -796,15 +625,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 			do_update_image_file = true;
 		}
 
-		//if (key > 0) fprintf(stdout, "%d\n", key);
-
 		//F5 - Refresh
 		if (key == (int)F_KEY::F5)
 		{
 			//When F5 is pressed, rebuild list of files, and reload image.
 			//Useful in case image are added or modified in the background (when image files are updated by other process).
-            //n_files = list.dir(std::wstring(tiffs_path));
-
 			n_paths = paths_list.dir(dir_path, ext_path);
             images_path = dir_path / L"*";  //operator/  - concatenates two paths with a directory separator //https://en.cppreference.com/w/cpp/filesystem/path/append
             images_path += ext_path;        //operator+= - concatenates two paths without introducing a directory separator	
@@ -834,13 +659,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 
 		if (do_update_image_file)
 		{
-			//_wmakepath_s(wpath_buffer,				//wchar_t *path,
-			//			 _countof(wpath_buffer),	//size_t sizeInWords,
-			//			 drive,						//const wchar_t *drive,
-			//			 dir,						//const wchar_t *dir,
-			//			 image_file_name.c_str(),	//const wchar_t *fname,
-			//			 L"");						//const wchar_t *ext
-
 			I = myimread(image_full_path.wstring().c_str(), IMREAD_UNCHANGED);
 
             J = processImageForDisplay(I);  //Process image for display (if needed).
@@ -864,5 +682,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 	}
 
 	mycvDestroyAllWindows();
-    LocalFree(argv);   // Free memory allocated for CommandLineToArgvW arguments.
+
+#ifdef _WIN32
+    LocalFree(wargv);   // Free memory allocated for CommandLineToArgvW arguments.
+#endif
 }
