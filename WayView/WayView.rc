@@ -34,9 +34,13 @@ IDI_ICON1               ICON                    "WayView.ico"
 // Version
 //
 
+//https://stackoverflow.com/questions/2653214/stringification-of-a-macro-value
+#define XSTR(a) STR(a)
+#define STR(a) #a
+
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,0,0,1
- PRODUCTVERSION 0,0,0,1
+ FILEVERSION 0,0,PROJECT_VER_MAJOR,PROJECT_VER_MINOR
+ PRODUCTVERSION 0,0,PROJECT_VER_MAJOR,PROJECT_VER_MINOR
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -52,12 +56,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "WayView Image Viewer"
-            VALUE "FileVersion", "0.0.0.1a"
+            VALUE "FileVersion", "0.0." XSTR(PROJECT_VER_MAJOR) "." XSTR(PROJECT_VER_MINOR)
             VALUE "InternalName", "WayView.exe"
             VALUE "LegalCopyright", "Copyright (C) 2024"
             VALUE "OriginalFilename", "WayView.exe"
             VALUE "ProductName", "WayView Image Viewer"
-            VALUE "ProductVersion", "0.0.0.1a"
+            VALUE "ProductVersion", "0.0." WAYVIEW_VERSION
         END
     END
     BLOCK "VarFileInfo"

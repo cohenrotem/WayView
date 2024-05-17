@@ -511,7 +511,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
     }    
     ////////////////////////////////////////////////////////////////////////////
 
-    std::wstring path{wargv[1]};
+    std::wstring path = (argc >= 2) ? std::wstring(wargv[1]) : std::wstring();
 #else   //Linux: use standard main, and convert argv from char to wchar_t (convert to wchar_t for matching the Windows implementation that uses wchar_t).
 int main(int argc, char *argv[])
 {

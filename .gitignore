@@ -1,6 +1,6 @@
 **/.vs
 **/x64
 **/GeneratedFiles
+**/build
 *.user
-
 /WayView/WayView.aps
