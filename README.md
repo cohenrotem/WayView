@@ -59,10 +59,10 @@ The statically linked OpenCV is going to be linked dynamically to the (non-stati
 
 Building OpenCV from source:  
  - Open command line terminal.
- - Change directory to home (for example):
+ - Change directory to home (for example):  
  `cd ~`
  
- - Install minimal prerequisites   (https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html)
+ - Install minimal prerequisites  (https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html)  
  `sudo apt update && sudo apt install -y cmake g++ wget unzip`
 
  - Download and unpack sources of OpenCV 3.4.16  
