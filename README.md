@@ -32,12 +32,75 @@ Inspecting pixel values when zooming in:
 ### Dependencies
 
  - WayView.exe is a standalone Windows 64-bit application (tested in Windows 10).
+ - Using WayView in Linux is supported, but required building the application from source.  
+  In Linux, WayView executable requires installation of Qt5. 
 
-### Installing
+## Installing
+
+### Windows installation
 
  - Download the latest release of WayView.exe from [releases](https://github.com/cohenrotem/WayView/releases).
  - Copy WayView.exe to know folder such as "c:\Program Files\WayView".  
  (Create a folder named WayView in "c:\Program Files" folder, and copy WayView.exe to the created folder).  
+
+
+### Linux installation
+
+In the current state of the project, the Linux installation requires building from source.  
+Note: The g++ compiler must support C++17.  
+The following build instructions were tested with Ubuntu 20.04:  
+
+ - Install Qt5 (if required):  
+ `sudo apt update`  
+ `sudo apt install qtbase5-dev`
+	
+We are going to build statically linked OpenCV version.  
+The statically linked OpenCV is going to be linked dynamically to the (non-static) shared objects of Qt5.
+
+Building OpenCV from source:  
+ - Open command line terminal.
+ - Change directory to home (for example):
+ `cd ~`
+ 
+ - Install minimal prerequisites   (https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html)
+ `sudo apt update && sudo apt install -y cmake g++ wget unzip`
+
+ - Download and unpack sources of OpenCV 3.4.16  
+ `wget -O opencv.zip https://github.com/opencv/opencv/archive/3.4.16.zip`  
+ `unzip opencv.zip`
+
+ - Create build directory  
+ `cd opencv-3.4.16 && mkdir -p build && cd build`
+ 
+ - Configure  
+ `cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/opencv-3.4.16 -DBUILD_CUDA_STUBS=OFF -DBUILD_DOCS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_FAT_JAVA_LIB=OFF -DBUILD_IPP_IW=ON -DBUILD_ITT=OFF -DBUILD_JASPER=ON -DBUILD_JAVA=OFF -DBUILD_JPEG=ON -DBUILD_LIST=OFF -DBUILD_OPENEXR=ON -DBUILD_PACKAGE=ON -DBUILD_PERF_TESTS=OFF -DBUILD_PNG=ON -DBUILD_PROTOBUF=OFF -DBUILD_SHARED_LIBS=OFF -DBUILD_TBB=OFF -DBUILD_TESTS=OFF -DBUILD_TIFF=ON -DBUILD_USE_SYMLINKS=OFF -DBUILD_WEBP=ON -DBUILD_WITH_DEBUG_INFO=ON -DBUILD_WITH_DYNAMIC_IPP=OFF -DBUILD_WITH_STATIC_CRT=ON -DBUILD_ZLIB=ON -DBUILD_opencv_apps=OFF -DBUILD_opencv_calib3d=OFF -DBUILD_opencv_core=ON -DBUILD_opencv_dnn=OFF -DBUILD_opencv_features2d=OFF -DBUILD_opencv_flann=OFF -DBUILD_opencv_highgui=ON -DBUILD_opencv_imgcodecs=ON -DBUILD_opencv_imgproc=ON -DBUILD_opencv_java_bindings_generator=OFF -DBUILD_opencv_js=OFF -DBUILD_opencv_js_bindings_generator=OFF -DBUILD_opencv_ml=OFF -DBUILD_opencv_objdetect=OFF -DBUILD_opencv_photo=OFF -DBUILD_opencv_python2=OFF -DBUILD_opencv_python3=OFF -DBUILD_opencv_python_bindings_generator=OFF -DBUILD_opencv_python_tests=OFF -DBUILD_opencv_shape=OFF -DBUILD_opencv_stitching=OFF -DBUILD_opencv_superres=OFF -DBUILD_opencv_ts=OFF -DBUILD_opencv_video=OFF -DBUILD_opencv_videoio=OFF -DBUILD_opencv_videostab=OFF -DBUILD_opencv_world=OFF -DWITH_1394=OFF -DWITH_ARITH_DEC=OFF -DWITH_ARITH_ENC=OFF -DWITH_CLP=OFF -DWITH_CSTRIPES=OFF -DWITH_CUDA=OFF -DWITH_DIRECTX=OFF -DWITH_DSHOW=OFF -DWITH_EIGEN=OFF -DWITH_FFMPEG=OFF -DWITH_GDAL=OFF -DWITH_GDCM=OFF -DWITH_GIGEAPI=OFF -DWITH_GSTREAMER=OFF -DWITH_GSTREAMER_0_10=OFF -DWITH_HALIDE=OFF -DWITH_IMGCODEC_HDR=ON -DWITH_IMGCODEC_PXM=ON -DWITH_IMGCODEC_SUNRASTER=ON -DWITH_INF_ENGINE=OFF -DWITH_INTELPERC=OFF -DWITH_IPP=OFF -DWITH_ITT=OFF -DWITH_JASPER=ON -DWITH_JPEG=ON -DWITH_LAPACK=ON -DWITH_MFX=OFF -DWITH_MSMF=OFF -DWITH_MSMF_DXVA=OFF -DWITH_NGRAPH=OFF -DWITH_OPENCL=OFF -DWITH_OPENCLAMDBLAS=OFF -DWITH_OPENCLAMDFFT=OFF -DWITH_OPENCL_D3D11_NV=OFF -DWITH_OPENCL_SVM=OFF -DWITH_OPENEXR=ON -DWITH_OPENGL=OFF -DWITH_OPENMP=OFF -DWITH_OPENNI=OFF -DWITH_OPENNI2=OFF -DWITH_OPENVX=OFF -DWITH_PNG=ON -DWITH_PROTOBUF=OFF -DWITH_PVAPI=OFF -DWITH_QT=ON -DWITH_QUIRC=OFF -DWITH_TBB=OFF -DWITH_TIFF=ON -DWITH_VFW=OFF -DWITH_VTK=OFF -DWITH_WEBP=ON -DWITH_WIN32UI=OFF -DWITH_XIMEA=OFF -DCPU_DISPATCH=SSE3 ..`
+
+ - Build  
+ `make -j4`
+
+ - Install (to /opt/opencv-3.4.16)  
+ `sudo make install`
+
+Building WayView from source:  
+ - Change directory to home (for example), make directory named projects (if required)  
+ `cd ~`  
+ `mkdir -p projects && cd projects`
+
+ - Clone the repository of WayView (assume latest commit is desired, and assume git is installed)  
+ `git clone https://github.com/cohenrotem/WayView.git`
+
+ - Create build directory  
+ `cd WayView/WayView && mkdir -p build && cd build`
+
+ - Configure  
+ `cmake ..`
+
+ - Build  
+ `make -j4`
+ 
+ - Copy WayView executable to /opt/WayView  
+  `sudo mkdir -p /opt/WayView`
+  `sudo cp ~/projects/WayView/WayView/build/bin/WayView /opt/WayView`
 
 
 ### Executing program
@@ -62,8 +125,8 @@ In addition to the existing functionality of imshow (given OpenCV is built with 
  - B0 button functionality is not yet implemented (reserved for 4 display presets).
 
 ## Building WayView from Source using Microsoft Visual Studio
-The last commit uses CMake, but it supports only Microsoft Visual Studio (Linux is not yet supported).  
-The last commit requires a compiler that supports c++17.  
+
+The last commit requires a compiler that supports C++17.  
 WayView is statically linked with OpenCV and Qt5.  
 For statically link OpenCV and Qt5, we have to build OpenCV and Qt5 from source using Visual Studio Platform Toolset (build all with the same version of MSVC).  
 OpenCV depends on Qt5, so we have to build Qt5 before building OpenCV.  
@@ -109,6 +172,12 @@ Building OpenCV from source (instructions are incomplete):
  Note: Building was tested with Visual Studio 2019 only.  
  Note: The Debug configuration EXE is named WayViewd.exe (WayViewd.exe is not part of the official release).  
 
+## Building WayView from Source in Linux
+
+The last commit uses CMake, and supports Linux build.  
+The Linux build is statically linked with OpenCV, but dynamically linked with Qt5.  
+Refer to "Linux installation" section for details.  
+
 ## Authors
 
 Rotem C.
@@ -118,7 +187,7 @@ Rotem C.
  - 0.1
     - Initial Release
  - 0.1c
-    - Use CMake (not yet released)
+    - Use CMake and support Linux (not yet released)
 
 ## License
 

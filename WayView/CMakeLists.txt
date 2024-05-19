@@ -70,11 +70,12 @@ if(MSVC)
     add_compile_definitions(_UNICODE)
     add_compile_definitions(UNICODE)  
           
-    add_executable(WayView ${SOURCES} 
+    add_executable(WayView
+        ${SOURCES}
         ${CMAKE_CURRENT_BINARY_DIR}/moc_my_window_QT.cpp
         WayView.rc
         WayView.ico
-        )    
+        )
     
     #https://gist.github.com/sonictk/8ce00c6019d3a19056c054e485326434
     set(MSVC_COMPILE_OPTIONS "/W4;/Gy;/Zc:wchar_t;/nologo;/permissive-")
@@ -84,6 +85,13 @@ if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Release>:${MSVC_COMPILE_RELEASE_OPTIONS}>")
           
     target_link_options(WayView PRIVATE "/INCREMENTAL;/DEBUG:FULL;/SUBSYSTEM:WINDOWS")
+elseif(UNIX)
+    add_executable(WayView
+        ${SOURCES}
+        ${CMAKE_CURRENT_BINARY_DIR}/moc_my_window_QT.cpp
+        )
+else()
+    message(SEND_ERROR "Unsupported configuration - current support is either MSVC in Windows or Linux")
 endif()
 
 # Generate Qt MOC file
@@ -226,8 +234,10 @@ if(MSVC)
         set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT WayView)
     endif()
 
-    # define preprocessor macro containg the configuration name https://stackoverflow.com/questions/66571691/cmake-create-a-makefile-supports-debug-and-release-with-different-configuration
+    # define preprocessor macro contain the configuration name https://stackoverflow.com/questions/66571691/cmake-create-a-makefile-supports-debug-and-release-with-different-configuration
     target_compile_definitions(WayView PRIVATE MY_CONFIG_DEFINE=\"$<CONFIG>\")
+elseif(UNIX)
+    
 endif()
 
 set_target_properties(WayView

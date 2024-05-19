@@ -36,14 +36,17 @@
 #include <wchar.h>
 #include <iostream>
 #include <cctype>
+#include <limits>
 
 //C++17 now has the std::filesystem
 #include <filesystem>
 
 
+#ifdef _WIN32
 //https://stackoverflow.com/questions/27759754/qt-5-4-static-build-produces-unresolved-external-symbol-link-error-in-visual-s
 #include "QtCore/qplugin.h"
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
+#endif
 
 #include <QtGui/QIcon>
 #include <QtWidgets/QWidget>
@@ -111,6 +114,48 @@ static void showErrorMessageAndExit(const std::wstring msg, bool do_create_appli
 
 
 
+#ifndef _WIN32
+//_wfopen_s is MSVC specific, the following function is a replacement for Linux.
+static int _wfopen_s(FILE** f, wchar_t const* file_name, wchar_t const* mode)
+{
+    if (f == nullptr)
+    {
+        return -1;  //Return some error code
+    }
+
+    std::wstring wide_character_file_name = std::wstring{file_name};
+
+    //Convert std::wstring to std::string. https://stackoverflow.com/questions/4804298/how-to-convert-wstring-into-string
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;   //Deprecated in C++17, but we are using it anyway (define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING).
+    std::string narrow_utd8_file_name = converter.to_bytes(wide_character_file_name);
+    std::string narrow_utd8_mode = converter.to_bytes(mode);
+
+    *f = fopen(narrow_utd8_file_name.c_str(), narrow_utd8_mode.c_str());
+
+    return 0;
+}
+
+//_fseeki64 is MSVC specific, the following function is a replacement for Linux.
+static int _fseeki64(FILE* f, int64_t offset, int origin)
+{
+    return fseeko64(f, (off64_t)offset, origin);
+}
+
+//_ftelli64 is MSVC specific, the following function is a replacement for Linux.
+static int64_t _ftelli64(FILE* f)
+{
+    return (int64_t)ftello64(f);
+}
+
+
+//fread_s is MSVC specific, the following function is a replacement for Linux.
+static size_t fread_s(void* buffer, size_t buffer_size, size_t element_size, size_t element_count, FILE* f)
+{
+    return fread(buffer, element_size, element_count, f);
+}
+#endif
+
+
 //Read image from file with wchar_t name
 //In case image has 4 color channels, assume BGRA color space, and convert from BGRA to BGR (the application doesn't support BGRA format).
 static Mat myimread(const wchar_t filename[], int flags = 1, bool do_create_application_when_showing_error = false)
@@ -128,7 +173,7 @@ static Mat myimread(const wchar_t filename[], int flags = 1, bool do_create_appl
 	file_size = (uint64_t)_ftelli64(f);
 	_fseeki64(f, 0, SEEK_SET);
 
-	if (file_size > MAXINT32)
+	if (file_size > std::numeric_limits<int>::max())
 	{
         showErrorMessageAndExit(std::wstring(L"Error: file size is too large: ") + filename + L", (" + std::to_wstring(file_size) + L"bytes)", do_create_application_when_showing_error);
 	}
