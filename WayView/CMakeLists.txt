@@ -65,10 +65,11 @@ add_compile_definitions(PROJECT_VER_PATCH=${PROJECT_VER_PATCH})
 add_compile_definitions(WAYVIEW_VERSION="${WayView_VERSION}")
 
 if(MSVC)
+    # Using Microsoft Visual Studio C++
     add_compile_definitions(WIN32)
     add_compile_definitions(_WINDOWS)
     add_compile_definitions(_UNICODE)
-    add_compile_definitions(UNICODE)  
+    add_compile_definitions(UNICODE)
           
     add_executable(WayView
         ${SOURCES}
@@ -86,10 +87,17 @@ if(MSVC)
           
     target_link_options(WayView PRIVATE "/INCREMENTAL;/DEBUG:FULL;/SUBSYSTEM:WINDOWS")
 elseif(UNIX)
+    # Using g++
     add_executable(WayView
         ${SOURCES}
         ${CMAKE_CURRENT_BINARY_DIR}/moc_my_window_QT.cpp
         )
+		
+    set(GCC_COMPILE_OPTIONS "-m64;-fPIC;-Wall")
+    set(GCC_COMPILE_DEBUG_OPTIONS "${GCC_COMPILE_OPTIONS};-ggdb;-O0")
+    set(GCC_COMPILE_RELEASE_OPTIONS "${GCC_COMPILE_OPTIONS};-O2")
+    target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Debug>:${GCC_COMPILE_DEBUG_OPTIONS}>")
+    target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Release>:${GCC_COMPILE_RELEASE_OPTIONS}>")		
 else()
     message(SEND_ERROR "Unsupported configuration - current support is either MSVC in Windows or Linux")
 endif()

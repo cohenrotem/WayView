@@ -57,8 +57,6 @@ Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
 
 #include "my_window_QT.h"
 
-//#include <Windows.h>
-
 using namespace cv;
 
 #ifdef _WIN32
@@ -112,25 +110,33 @@ static void showErrorMessageAndExit(const std::wstring msg, bool do_create_appli
     }
 }
 
+#ifdef _WIN32
+typedef wchar_t FILENAME_CHAR_T; //Use Wide characters for Windows files system.
+#else
+typedef char FILENAME_CHAR_T;    //Use UTF-8 narrow characters for Linux files system.
+#endif
 
 
 #ifndef _WIN32
 //_wfopen_s is MSVC specific, the following function is a replacement for Linux.
-static int _wfopen_s(FILE** f, wchar_t const* file_name, wchar_t const* mode)
+static int _wfopen_s(FILE** f, const FILENAME_CHAR_T *file_name, const wchar_t *mode)
 {
     if (f == nullptr)
     {
         return -1;  //Return some error code
     }
 
-    std::wstring wide_character_file_name = std::wstring{file_name};
+    //std::wstring wide_character_file_name = std::wstring{file_name};
 
     //Convert std::wstring to std::string. https://stackoverflow.com/questions/4804298/how-to-convert-wstring-into-string
+    std::wstring wide_character_mode = std::wstring{mode};
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;   //Deprecated in C++17, but we are using it anyway (define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING).
-    std::string narrow_utd8_file_name = converter.to_bytes(wide_character_file_name);
-    std::string narrow_utd8_mode = converter.to_bytes(mode);
+    //std::string narrow_utd8_file_name = converter.to_bytes(wide_character_file_name); //Don't convert the file name - there is a issue when with Linux file system
+    std::string narrow_utd8_mode = converter.to_bytes(wide_character_mode);
 
-    *f = fopen(narrow_utd8_file_name.c_str(), narrow_utd8_mode.c_str());
+    //*f = fopen(narrow_utd8_file_name.c_str(), narrow_utd8_mode.c_str());
+
+    *f = fopen(file_name, narrow_utd8_mode.c_str());
 
     return 0;
 }
@@ -156,26 +162,34 @@ static size_t fread_s(void* buffer, size_t buffer_size, size_t element_size, siz
 #endif
 
 
+
 //Read image from file with wchar_t name
 //In case image has 4 color channels, assume BGRA color space, and convert from BGRA to BGR (the application doesn't support BGRA format).
-static Mat myimread(const wchar_t filename[], int flags = 1, bool do_create_application_when_showing_error = false)
+static Mat myimread(const FILENAME_CHAR_T *filename, int flags = 1, bool do_create_application_when_showing_error = false)
 {
-	FILE *f;
+	FILE *f = nullptr;
 	uint64_t file_size;
 	_wfopen_s(&f, filename, L"rb");
 
+#ifdef _WIN32
+    std::wstring filename_as_wstring = std::wstring(filename);
+#else
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;   //Deprecated in C++17, but we are using it anyway (define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING).
+    std::wstring filename_as_wstring = converter.from_bytes(std::string(filename));  //Convert to wstring - wstring is used by showErrorMessageAndExit
+#endif
+
 	if (f == nullptr)
 	{
-        showErrorMessageAndExit(std::wstring(L"Error: can't open file: ") + filename, do_create_application_when_showing_error);
+        showErrorMessageAndExit(std::wstring(L"Error: can't open file: ") + filename_as_wstring, do_create_application_when_showing_error);
 	}
 
 	_fseeki64(f, 0, SEEK_END);
 	file_size = (uint64_t)_ftelli64(f);
 	_fseeki64(f, 0, SEEK_SET);
 
-	if (file_size > std::numeric_limits<int>::max())
+	if (file_size > (uint64_t)std::numeric_limits<int>::max())
 	{
-        showErrorMessageAndExit(std::wstring(L"Error: file size is too large: ") + filename + L", (" + std::to_wstring(file_size) + L"bytes)", do_create_application_when_showing_error);
+        showErrorMessageAndExit(std::wstring(L"Error: file size is too large: ") + filename_as_wstring + L", (" + std::to_wstring(file_size) + L"bytes)", do_create_application_when_showing_error);
 	}
 
 	unsigned char *raw = new unsigned char[(size_t)file_size];
@@ -186,7 +200,7 @@ static Mat myimread(const wchar_t filename[], int flags = 1, bool do_create_appl
 	}
 
 	//Read file to memory buffer.
-	fread_s(raw, (size_t)file_size, 1, (size_t)file_size, f);
+	fread_s(raw, (size_t)file_size, (size_t)1, (size_t)file_size, f);
 
 	fclose(f);
 
@@ -200,7 +214,7 @@ static Mat myimread(const wchar_t filename[], int flags = 1, bool do_create_appl
 	if (decodedImage.data == nullptr)
 	{
 		// Error reading raw image data
-        showErrorMessageAndExit(std::wstring(L"Error decoding file ") + filename, do_create_application_when_showing_error);
+        showErrorMessageAndExit(std::wstring(L"Error decoding file ") + filename_as_wstring, do_create_application_when_showing_error);
 	}
 
 	delete[] raw;
@@ -574,22 +588,29 @@ int main(int argc, char *argv[])
         }
 	}
 
-#ifndef _WIN32
+#ifdef _WIN32
+    std::filesystem::path image_full_path(path);    //Use wide character path in Windows
+#else
+    //We may need to set locale for using utf-8 encoded path characters.
+    std::setlocale(LC_ALL, "");
+    std::locale::global(std::locale(""));
+
     std::string narrow_utf8_path_string = std::string{argv[1]}; //Assume that in Linux the file path is UTF-8 encoded.
 
     //Convert std::string to std::wstring. https://stackoverflow.com/questions/2573834/c-convert-string-or-char-to-wstring-or-wchar-t
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;   //Deprecated in C++17, but we are using it anyway (define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING).
-    std::wstring path = converter.from_bytes(narrow_utf8_path_string);
+    //std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;   //Deprecated in C++17, but we are using it anyway (define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING).
+    //std::wstring path = converter.from_bytes(narrow_utf8_path_string);
+
+    std::filesystem::path image_full_path(narrow_utf8_path_string); //Use UTF-8 narrow character path in Linux
 #endif
 
 	const wchar_t winname[] = L"I";
 
-	int balance_select = 0;
+    int balance_select = 0;
 
     //C++17 now has the std::filesystem package
     //https://stackoverflow.com/questions/35530092/c-splitting-an-absolute-file-path
     //https://en.cppreference.com/w/cpp/filesystem/path/extension
-    std::filesystem::path image_full_path(path);
     std::filesystem::path dir_path = image_full_path.parent_path();
     std::filesystem::path ext_path = image_full_path.extension();
     std::filesystem::path images_path = dir_path / L"*";   //operator/  - concatenates two paths with a directory separator //https://en.cppreference.com/w/cpp/filesystem/path/append
@@ -620,11 +641,19 @@ int main(int argc, char *argv[])
 
 
 	Mat J;
+#ifdef _WIN32
 	Mat I = myimread(image_full_path.wstring().c_str(), IMREAD_UNCHANGED, true);
+    std::wstring image_file_name = image_full_path.filename().wstring();
+#else
+    Mat I = myimread(image_full_path.string().c_str(), IMREAD_UNCHANGED, true); //Pass narrow UTF-8 encoded string in Linux (there is an issue using wstring with Linux file system)
+    std::string image_file_name_utf8 = image_full_path.filename().string();
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;   //Deprecated in C++17, but we are using it anyway (define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING).
+    std::wstring image_file_name = converter.from_bytes(image_file_name_utf8);
+#endif
 
 	J = processImageForDisplay(I);  //Process image for display (if needed).
 
-    std::wstring image_file_name = image_full_path.filename().wstring();
+    
 	const wchar_t *wintitle = image_file_name.c_str();
 	   
 	mycvNamedWindow(winname, wintitle, WINDOW_AUTOSIZE | WINDOW_GUI_EXPANDED);
@@ -704,11 +733,17 @@ int main(int argc, char *argv[])
 
 		if (do_update_image_file)
 		{
+#ifdef _WIN32            
 			I = myimread(image_full_path.wstring().c_str(), IMREAD_UNCHANGED);
+            image_file_name = image_full_path.filename().wstring();
+#else
+            I = myimread(image_full_path.string().c_str(), IMREAD_UNCHANGED); //Pass narrow UTF-8 encoded string in Linux (there is an issue using wstring with Linux file system)
+            image_file_name_utf8 = image_full_path.filename().string();
+            image_file_name = converter.from_bytes(image_file_name_utf8);
+#endif            
 
             J = processImageForDisplay(I);  //Process image for display (if needed).
-
-            image_file_name = image_full_path.filename().wstring();
+            
 			wintitle = image_file_name.c_str();
 
 			tmpJ = cvIplImage(J);

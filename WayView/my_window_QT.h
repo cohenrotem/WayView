@@ -40,8 +40,13 @@
 #ifndef __MY_OPENCV_HIGHGUI_QT_H__
 #define __MY_OPENCV_HIGHGUI_QT_H__
 
+#ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable: 4127)  //qvarlengtharray.h(169,1): warning C4127: conditional expression is constant
+#else
+//#pragma GCC diagnostic push
+//#pragma GCC diagnostic ignored "-W???"
+#endif
 
 //#include "precomp.hpp"
 
@@ -147,7 +152,11 @@
 #include <QtWidgets/QMenu>
 #include <QtTest/QTest>
 
+#ifdef _WIN32
 #pragma warning(pop)
+#else
+//#pragma GCC diagnostic pop
+#endif
 
 
 #define MY_CV_IMPL extern "C"

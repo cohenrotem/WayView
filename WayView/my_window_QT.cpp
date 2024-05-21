@@ -2966,10 +2966,14 @@ MyDefaultViewPort::MyDefaultViewPort(MyCvWindow* arg, int arg2) : QGraphicsView(
 MyDefaultViewPort::~MyDefaultViewPort()
 {
     if (image2Draw_mat)
+    {
         cvReleaseMat(&image2Draw_mat);
+    }
 
 	if (image2Draw_mat2)
+    {
 		cvReleaseMat(&image2Draw_mat2);
+    }
 }
 
 
@@ -3661,7 +3665,9 @@ void MyDefaultViewPort::draw2D(QPainter *painter)
 void MyDefaultViewPort::drawStatusBar()
 {
     if (nbChannelOriginImage!=CV_8UC1 && nbChannelOriginImage!=CV_8UC3)
+    {
         return;
+    }
 
 	if (mouseCoordinate.x() >= 0 &&
 		mouseCoordinate.y() >= 0 &&
